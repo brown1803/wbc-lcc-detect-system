@@ -1,4 +1,4 @@
 __pycache__/
-model_file/model.pt
+model_file/*.pt
 wbc.ui
 untitled.ui
