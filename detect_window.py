@@ -4,8 +4,10 @@ from PyQt5 import QtWidgets
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import pyqtSlot
 import cv2
-from detection import Detection
-
+from blood_yolo import BloodYolo
+from lung_faster import LungFaster
+from blood_faster import BloodFaster
+from lung_yolo import LungYolo
 
 class detect_window(QMainWindow):
     def __init__(self):
@@ -23,12 +25,25 @@ class detect_window(QMainWindow):
         self.radioBtnYolov8.clicked.connect(self.radio_button_clicked)
         self.radioBtnDeTr.clicked.connect(self.radio_button_clicked)
 
+        self.radio_button_selected = False
+
         self.detection_thread = None
 
         if self.detection_thread is not None:
             self.detection_thread.classesCountSignal.connect(self.update_statistical_table)
+    
+    def choose_type_clicked(self):
+        self.clear_radio_buttons()
+        self.radio_button_selected = False
+
+    def clear_radio_buttons(self):
+        self.radioBtnFaster.setChecked(False)
+        self.radioBtnYolov8.setChecked(False)
+        self.radioBtnDeTr.setChecked(False)
 
     def browse_image(self):
+        self.clear_radio_buttons()
+        self.radio_button_selected = False
         fname = QFileDialog.getOpenFileName(self,'Open file')
         print(fname[0])
         if fname[0]:
@@ -73,12 +88,24 @@ class detect_window(QMainWindow):
             self.radioBtnYolov8.setChecked(False)
             self.radioBtnDeTr.setChecked(False)
             return
-
+        self.radio_button_selected = True
         img_path = self.pathLabel.text()
         if self.chooseTypeCombo.currentIndex() == 0:
             if self.radioBtnFaster.isChecked():
                 print("Faster RCNN")
                 self.img_process_label.hide()
+                self.statusProcessLabel.setText("Detecting!!!")
+                if self.detection_thread is not None:
+                    self.detection_thread.quit()
+                    self.detection_thread.wait()
+
+                
+                self.detection_thread = BloodFaster(img_path)
+                self.detection_thread.finished.connect(self.detect_completed)
+                self.detection_thread.changePixmap.connect(self.setImg)
+                self.detection_thread.classesCountSignal.connect(self.update_statistical_table)
+                self.detection_thread.start()
+
             elif self.radioBtnYolov8.isChecked():
 
                 print("Yolov8")
@@ -89,7 +116,7 @@ class detect_window(QMainWindow):
                     self.detection_thread.wait()
 
                 
-                self.detection_thread = Detection(img_path)
+                self.detection_thread = BloodYolo(img_path)
                 self.detection_thread.finished.connect(self.detect_completed)
                 self.detection_thread.changePixmap.connect(self.setImg)
                 self.detection_thread.classesCountSignal.connect(self.update_statistical_table)
@@ -103,11 +130,32 @@ class detect_window(QMainWindow):
             if self.radioBtnFaster.isChecked():
                 print("Faster RCNN")
                 self.img_process_label.hide()
+                self.statusProcessLabel.setText("Detecting!!!")
+                if self.detection_thread is not None:
+                    self.detection_thread.quit()
+                    self.detection_thread.wait()
+
                 
+                self.detection_thread = LungFaster(img_path)
+                self.detection_thread.finished.connect(self.detect_completed)
+                self.detection_thread.changePixmap.connect(self.setImg)
+                self.detection_thread.classesCountSignal.connect(self.update_statistical_table)
+                self.detection_thread.start()
             elif self.radioBtnYolov8.isChecked():
 
                 print("Yolov8")
                 self.img_process_label.hide()
+                self.statusProcessLabel.setText("Detecting!!!")
+                if self.detection_thread is not None:
+                    self.detection_thread.quit()
+                    self.detection_thread.wait()
+
+                
+                self.detection_thread = LungYolo(img_path)
+                self.detection_thread.finished.connect(self.detect_completed)
+                self.detection_thread.changePixmap.connect(self.setImg)
+                self.detection_thread.classesCountSignal.connect(self.update_statistical_table)
+                self.detection_thread.start()
 
             elif self.radioBtnDeTr.isChecked():
                 print("DeTr")
